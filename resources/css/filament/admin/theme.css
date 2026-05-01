@@ -1,0 +1,93 @@
+@import '/vendor/filament/filament/resources/css/theme.css';
+
+:root {
+    --stripe-bg: #f6f9fc;
+    --stripe-card: #ffffff;
+    --stripe-border: #e6ebf1;
+    --stripe-text: #0a2540;
+    --stripe-muted: #425466;
+    --stripe-primary: #635bff;
+}
+
+/* Fundo geral */
+body {
+    background: var(--stripe-bg);
+    color: var(--stripe-text);
+}
+
+/* Sidebar */
+.fi-sidebar {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    border-right: 1px solid var(--stripe-border);
+}
+
+/* Topbar */
+.fi-topbar {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--stripe-border);
+}
+
+/* Cards, sections, tables */
+.fi-section,
+.fi-card,
+.fi-ta-ctn,
+.fi-in-entry,
+.fi-fo-field-wrp {
+    background: var(--stripe-card);
+    border: 1px solid var(--stripe-border);
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+/* Botões */
+.fi-btn {
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+/* Inputs */
+.fi-input,
+.fi-select-input,
+.fi-textarea,
+textarea,
+input {
+    border-radius: 12px;
+}
+
+/* Badges */
+.fi-badge {
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+/* Tabelas */
+.fi-ta-table thead th {
+    color: var(--stripe-muted);
+    font-weight: 600;
+}
+
+.fi-ta-row:hover {
+    background-color: #f8fbff;
+}
+
+/* Item ativo da sidebar */
+.fi-sidebar-item-active a {
+    background-color: rgba(99, 91, 255, 0.08);
+    color: var(--stripe-primary);
+    border-radius: 12px;
+}
+
+/* Títulos */
+.fi-header-heading,
+.fi-section-header-heading {
+    color: var(--stripe-text);
+    font-weight: 700;
+}
+
+/* Texto secundário */
+.fi-section-header-description,
+.fi-header-subheading {
+    color: var(--stripe-muted);
+}
