@@ -7,6 +7,7 @@ use Livewire\Attributes\Title;
 use App\Helper\CartManagment;
 use App\Models\Order;
 use App\Models\Address;
+use App\Models\Product;
 use Stripe\Stripe;
 use Stripe\Checkout\Session;
 use Illuminate\Support\Facades\Mail;
@@ -45,6 +46,7 @@ class CheckOutPage extends Component
         ]);
 
         $cart_itens = CartManagment::getCartItemsFromCookie();
+        $cart_itens = $this->applyCurrentPrices($cart_itens);
 
         $line_itens = [];
         foreach($cart_itens as $item){
@@ -70,8 +72,10 @@ class CheckOutPage extends Component
         $order->shipping_amount = 0;
         $order->shipping_method = 'none';
         $order->notes = 'Order placed by ' . auth()->user()->name;
+        $order->save();
 
         $address = new Address();
+        $address->order_id = $order->id;
         $address->first_name = $this->first_name;
         $address->last_name = $this->last_name;
         $address->phone = $this->phone;
@@ -79,11 +83,14 @@ class CheckOutPage extends Component
         $address->city = $this->city;
         $address->state = $this->state;
         $address->zip_code = $this->zip_code;
+        $address->save();
 
-        $redirect_url = '';
+        $order->items()->createMany($cart_itens);
+
+        $redirect_url = route('success');
 
         if($this->payment_method === 'stripe'){
-            Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+            Stripe::setApiKey(config('services.stripe.secret'));
             $session = Session::create([
                 'payment_method_types' => ['card'],
                 'customer_email' => auth()->user()->email,
@@ -93,19 +100,32 @@ class CheckOutPage extends Component
                 'cancel_url' => route('cancel'),
             ]);
 
-            $redirect_url = $sessionCheckout->url;
-        } else{
-            $redirect_url = route('success');
+            $order->stripe_session_id = $session->id;
+            $order->save();
+
+            $redirect_url = $session->url;
         }
 
-        $order->save();
-        $address->order_id = $order->id;
-        $address->save();
-        $order->items()->createMany($cart_itens);
         CartManagment::clearCartItems();
         Mail::to(request()->user())->send(new OrderPlaced($order));
 
         return redirect($redirect_url);
+    }
+
+    // Re-prices cart items against the database so a stale price cached in the
+    // cart cookie can never be used to build the Stripe line items / order total.
+    private function applyCurrentPrices(array $cart_itens): array
+    {
+        $current_prices = Product::whereIn('id', array_column($cart_itens, 'product_id'))
+            ->pluck('price', 'id');
+
+        foreach($cart_itens as &$item){
+            $price = $current_prices[$item['product_id']] ?? $item['unit_amount'];
+            $item['unit_amount'] = $price;
+            $item['total_amount'] = $price * $item['quantity'];
+        }
+
+        return $cart_itens;
     }
 
     public function render()

@@ -20,6 +20,7 @@ class LoginPage extends Component
 
         if(!auth()->attempt(['email' => $this->email, 'password' => $this->password])){
             session()->flash('error', 'Invalid Credentials');
+            return;
         }
 
         return redirect()->intended();

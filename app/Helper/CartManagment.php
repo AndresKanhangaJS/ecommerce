@@ -7,45 +7,23 @@ use App\Models\Product;
 
 class CartManagment
 {
-    // Add item to cart
+    // Add item to cart (increments quantity by 1 if already present)
     static public function addItemToCart($product_id, $quantity = 1){
-        $cart_items = self::getCartItemsFromCookie();
-
-        $existing_item = null;
-
-        foreach($cart_items as $key => $item){
-            if($item['product_id'] == $product_id){
-                $existing_item = $key;
-                break;
-            }
-        }
-
-        if($existing_item !== null){
-            $cart_items[$existing_item]['quantity'] ++; // Increment quantity
-
-            $cart_items[$existing_item]['total_amount'] = $cart_items[$existing_item]['quantity'] * $cart_items[$existing_item]['unit_amount']; // Update total amount
-        } else {
-            $product = Product::where('id', $product_id)->first(['id', 'name', 'price', 'images']);
-
-            if($product){
-                $cart_items[] = [
-                    'product_id' => $product_id,
-                    'name' => $product->name,
-                    'image' => $product->images[0] ?? null,
-                    'quantity' => 1,
-                    'unit_amount' => $product->price,
-                    'total_amount' => $product->price
-                ]; // Add new item
-            }
-        }
-
-        self::addCartItemToCookie($cart_items);
-
-        return count($cart_items);
+        return self::upsertCartItem($product_id, function($current_quantity) {
+            return $current_quantity + 1;
+        }, 1);
     }
 
-    // Add item to cart with qty
+    // Add item to cart with an explicit quantity (overwrites quantity if already present)
     static public function addItemToCartWithQty($product_id, $quantity){
+        return self::upsertCartItem($product_id, function($current_quantity) use ($quantity) {
+            return $quantity;
+        }, $quantity);
+    }
+
+    // Shared upsert logic: find or create the cart line for $product_id, resolving
+    // the new quantity via $resolveQuantity(currentQuantity), and persist to the cookie.
+    static private function upsertCartItem($product_id, callable $resolveQuantity, $new_item_quantity){
         $cart_items = self::getCartItemsFromCookie();
 
         $existing_item = null;
@@ -58,7 +36,7 @@ class CartManagment
         }
 
         if($existing_item !== null){
-            $cart_items[$existing_item]['quantity'] = $quantity; // Set quantity
+            $cart_items[$existing_item]['quantity'] = $resolveQuantity($cart_items[$existing_item]['quantity']);
 
             $cart_items[$existing_item]['total_amount'] = $cart_items[$existing_item]['quantity'] * $cart_items[$existing_item]['unit_amount']; // Update total amount
         } else {
@@ -69,9 +47,9 @@ class CartManagment
                     'product_id' => $product_id,
                     'name' => $product->name,
                     'image' => $product->images[0] ?? null,
-                    'quantity' => $quantity,
+                    'quantity' => $new_item_quantity,
                     'unit_amount' => $product->price,
-                    'total_amount' => $product->price * $quantity
+                    'total_amount' => $product->price * $new_item_quantity
                 ]; // Add new item
             }
         }
@@ -110,7 +88,7 @@ class CartManagment
 
     // Get all cart items from cookie
     static public function getCartItemsFromCookie(){
-        $cart_items = json_decode(Cookie::get('cart_items'), true);
+        $cart_items = json_decode(request()->cookie('cart_items'), true);
         if(!$cart_items){
             $cart_items = [];
         }

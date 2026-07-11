@@ -15,6 +15,9 @@ use App\Livewire\Auth\ForgotPasswordPage;
 use App\Livewire\Auth\ResetPasswordPage;
 use App\Livewire\SuccessPage;
 use App\Livewire\CancelPage;
+use App\Http\Controllers\StripeWebhookController;
+
+Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle'])->name('webhooks.stripe');
 
 Route::get('/', HomePage::class)->name('home');
 Route::get('/categories', CategoriesPage::class)->name('categories');
